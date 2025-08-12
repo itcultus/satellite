@@ -1,0 +1,10 @@
+---
+- name: Pre Flight
+  ansible.builtin.import_tasks: pre_flight.yml
+
+# Publish a new version
+- name: Publish Content Views
+  ansible.builtin.import_tasks: satellite_publish_cv.yml
+
+- name: Promote Composite Content Views
+  ansible.builtin.import_tasks: satellite_promote_cvs.yml

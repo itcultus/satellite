@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  author: Peter Tselios
+  description: A role to publish and promote Red Hat Satellite Content Views
+  company: ITCultus LTD
+
+  license: GPL v3.0
+
+  min_ansible_version: "2.14"
+
+  platforms:
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+
+  galaxy_tags: []
+dependencies: []

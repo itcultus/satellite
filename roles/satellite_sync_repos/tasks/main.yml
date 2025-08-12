@@ -1,0 +1,8 @@
+---
+# satellite_sync_repos/tasks/main.yml
+
+- name: Find the non-synched repositories
+  ansible.builtin.import_tasks: pre_flight.yml
+
+- name: Sync the repositories
+  ansible.builtin.import_tasks: sync_repos.yml

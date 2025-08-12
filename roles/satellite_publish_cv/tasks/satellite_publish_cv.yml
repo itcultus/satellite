@@ -1,0 +1,62 @@
+---
+# Tests on RHSS 6.16 shows that it's possible to publish all the CVs/CCVs in a loop
+# without issues. However, in order to be on the safe side, I opted to first publish
+# the CVs and on a second step the CCVs
+- name: Run Content View Publish
+  block:
+    - name: Publish Content Views
+      redhat.satellite.content_view_version:
+        username: "{{ satellite_username }}"
+        password: "{{ satellite_password }}"
+        server_url: "{{ satellite_server_url }}"
+        organization: "{{ satellite_organization }}"
+        validate_certs: "{{ satellite_validate_certs }}"
+        content_view: "{{ item.content_view }}"
+        description: "{{ item.description }}"
+      loop: "{{ __cv_publish | default([]) | rejectattr('composite') }}"
+      loop_control:
+        label: "{{ item.content_view }} - {{ item.description }}"
+      async: 21600 # Allow async run for up to 6 hours for very large content-views
+      poll: 0
+      register: __cv_publish_res
+
+    - name: Check on status of Content View Publish
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: __cv_publish_job
+      until: __cv_publish_job.finished
+      loop: "{{ __cv_publish_res.results }}"
+      loop_control:
+        label: "{{ item.item.content_view | default(item) }}"
+      retries: 999
+      delay: 10
+
+- name: Run Composite Content View Publish
+  block:
+    - name: Publish Composite Content Views
+      redhat.satellite.content_view_version:
+        username: "{{ satellite_username }}"
+        password: "{{ satellite_password }}"
+        server_url: "{{ satellite_server_url }}"
+        organization: "{{ satellite_organization }}"
+        validate_certs: "{{ satellite_validate_certs }}"
+        content_view: "{{ item.content_view }}"
+        description: "{{ item.description }}"
+        lifecycle_environments: "{{ __spcv_all_lces if item.composite | bool and item.initial | default(false) | bool else omit }}"
+      loop: "{{ __cv_publish | default([]) | selectattr('composite') }}"
+      loop_control:
+        label: "{{ item.content_view }} - {{ item.description }}"
+      async: 21600 # Allow async run for up to 6 hours for very large content-views
+      poll: 0
+      register: __ccv_publish_res
+
+    - name: Check on status of Content-View Publish
+      ansible.builtin.async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: __ccv_publish_res_job
+      until: __ccv_publish_res_job.finished
+      loop: "{{ __ccv_publish_res.results }}"
+      loop_control:
+        label: "{{ item.item.content_view | default(item) }}"
+      retries: 999
+      delay: 10

@@ -1,0 +1,26 @@
+---
+- name: Manage Host Colelctions # noqa: args[module]
+  redhat.satellite.host_collection:
+    username: "{{ satellite_username | default(omit) }}"
+    password: "{{ satellite_password | default(omit) }}"
+    server_url: "{{ satellite_server_url | default(omit) }}"
+    validate_certs: "{{ satellite_validate_certs | default(omit) }}"
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    organization: "{{ item.organization | default(omit) }}"
+    state: "{{ item.state | default(omit) }}"
+  loop: "{{ satellite_host_collections | selectattr('updated_name', 'undefined') }}"
+
+# The following is not idempotent
+- name: Rename Host Colelctions if needed # noqa: args[module]
+  redhat.satellite.host_collection:
+    username: "{{ satellite_username | default(omit) }}"
+    password: "{{ satellite_password | default(omit) }}"
+    server_url: "{{ satellite_server_url | default(omit) }}"
+    validate_certs: "{{ satellite_validate_certs | default(omit) }}"
+    name: "{{ item.name }}"
+    description: "{{ item.description | default(omit) }}"
+    organization: "{{ item.organization | default(omit) }}"
+    updated_name: "{{ item.updated_name }}"
+    state: "{{ item.state | default(omit) }}"
+  loop: "{{ satellite_host_collections | selectattr('updated_name', 'defined') }}"

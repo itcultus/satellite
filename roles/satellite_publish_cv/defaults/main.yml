@@ -1,0 +1,7 @@
+---
+
+# Default number of days between publications
+spcv_min_publication_days: 7
+
+# Force publication of CVs/CCV even if spcv_min_publication_days is not honored
+spcv_force_pub: false

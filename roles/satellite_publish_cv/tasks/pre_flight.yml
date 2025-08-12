@@ -1,0 +1,63 @@
+---
+
+- name: Fail if no search pattern is defined
+  ansible.builtin.fail:
+    msg: >-
+      No search pattern defined.
+      Please populate the 'satellite_cv_search_pattern' variable.
+  when: satellite_cv_search_pattern | length == 0
+
+- name: Get current date/time
+  ansible.builtin.setup:
+    gather_subset:
+      - min
+
+- name: Build working variables
+  ansible.builtin.set_fact:
+    __current_date: "{{ ansible_date_time.iso8601 | regex_replace('T', ' ') | regex_replace('Z', '') }}"
+    __current_epoch: "{{ ansible_date_time.epoch }}"
+    __spcv_all_lces: >
+      {{ satellite_lifecycle_environments | default([]) | map(attribute='name', default='') | reverse + ['Library'] }}
+    __spcv_all_lces_sorted: >
+      {{ ['Library'] + satellite_lifecycle_environments | default([]) | map(attribute='name', default='') }}
+
+- name: Find all content views
+  redhat.satellite.content_view_info:
+    server_url: "{{ satellite_server_url | default(omit) }}"
+    username: "{{ satellite_username | default(omit) }}"
+    password: "{{ satellite_password | default(omit) }}"
+    validate_certs: "{{ satellite_validate_certs | default(omit) }}"
+    organization: "{{ satellite_organization }}"
+    search: "name ~ {{ satellite_cv_search_pattern }}"
+  register: __satellite_all_cvs
+
+- name: Generate the list of Content Views we will publish
+  ansible.builtin.set_fact:
+    __cv_publish: >-
+      {{ __cv_publish | default([]) +
+        [{
+        'content_view': item.name,
+        'description': __description + '%Y-%m-%d' | strftime(__current_epoch),
+        'composite': item.composite | bool,
+        'initial': item.last_published is none,
+        'lces': __spcv_all_lces
+        }]
+      }}
+  when:
+    - __date_diff | int >= spcv_min_publication_days | int
+    - __date_diff | int >= __min_days | int
+  vars:
+    __date_diff: >
+      {{ ((__current_date | split(' ') | first | to_datetime('%Y-%m-%d') -
+           item.last_published | default('2000-01-01 00:00:00 UTC', true) | split(' ') | first | to_datetime('%Y-%m-%d')).days)
+      }}
+    # Minimum number of days between 2 publications. Used to avoid multiple publications per date
+    __min_days: "{{ 0 if spcv_force_pub | default(false) | bool else 1 }}"
+    __description: "{{ 'Intial publishing on ' if item.last_published is none else 'Updates up to ' }}"
+  loop: "{{ __satellite_all_cvs.content_views }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: Sort list
+  ansible.builtin.set_fact:
+    __cv_publish: "{{ __cv_publish | default([]) | sort(attribute='composite') }}"

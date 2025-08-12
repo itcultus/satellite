@@ -1,0 +1,21 @@
+---
+- name: Promote Content View
+  redhat.satellite.content_view_version:
+    username: "{{ satellite_username }}"
+    password: "{{ satellite_password }}"
+    server_url: "{{ satellite_server_url }}"
+    organization: "{{ satellite_organization }}"
+    validate_certs: "{{ satellite_validate_certs }}"
+    content_view: "{{ item.0.content_view }}"
+    lifecycle_environments: "{{ item.1 }}"
+    current_lifecycle_environment: "{{ ansible_loop.nextitem.1 | default('') }}"
+  when:
+    - ansible_loop.nextitem.1 | default('') | length
+    - item.0.content_view == ansible_loop.nextitem.0.content_view
+  loop: "{{ q('ansible.builtin.subelements', __cv_publish | selectattr('composite') | default([]), 'lces', skip_missing=True) }}"
+  loop_control:
+    label: >-
+      {{ "Skipping, reached end of environments" if ansible_loop.nextitem.1 is undefined or item.1 =='Library' else
+         "Promote " + item.0.content_view + " from " + ansible_loop.nextitem.1 + " to " + item.1
+      }}
+    extended: true

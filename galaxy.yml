@@ -1,0 +1,24 @@
+---
+# galaxy.yml
+namespace: itcultus
+name: satellite
+version: 1.0.0
+readme: README.md
+authors:
+  - Peter Tselios <myemail@mycompany.com>
+description: >-
+  A collection for adding missing functionality from the official Red Hat
+  Ansible Satellite collection. The collection has 3 roles that create
+  Host Collections and manage the automatic publication of Content Views.
+license_file: LICENSE
+tags:
+  - satellite
+  - contentview
+  - content
+  - view
+  - publish
+  - collection
+
+repository: https://github.com/itcultus/satellite
+
+dependencies: {}

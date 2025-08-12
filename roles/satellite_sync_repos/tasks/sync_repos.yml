@@ -1,0 +1,27 @@
+---
+# satellite_sync_repos/tasks/sync_repos.yml
+
+# Sync repositories
+- name: Sync repository
+  redhat.satellite.repository_sync: # noqa: args[module]
+    username: "{{ satellite_username | default(omit) }}"
+    password: "{{ satellite_password | default(omit) }}"
+    server_url: "{{ satellite_server_url | default(omit) }}"
+    validate_certs: "{{ satellite_validate_certs | default(omit) }}"
+    organization: "{{ item.organization.name | default(satellite_organization) }}"
+    product: "{{ item.product.name }}"
+    repository: "{{ item.name | default(omit) }}"
+  register: __repo_sync_job
+  loop: "{{ __repo_sets + __repos }}"
+  async: 999999
+  poll: 0
+
+- name: Wait until all Syncs have finished
+  ansible.builtin.async_status:
+    jid: "{{ item.ansible_job_id }}"
+  loop: "{{ __repo_sync_job.results }}"
+  when: item.ansible_job_id is defined  # Skip items that were skipped in the previous task
+  register: __async_job_result
+  until: __async_job_result.finished
+  retries: 999
+  delay: 20
